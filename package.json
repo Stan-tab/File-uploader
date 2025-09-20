@@ -1,15 +1,31 @@
 {
   "main": "app.js",
-	"dependencies": {
-		"connect-pg-simple": "^10.0.0",
-		"dotenv": "^17.2.2",
-		"ejs": "^3.1.10",
-		"express": "^5.1.0",
-		"passport": "^0.7.0",
-		"passport-local": "^1.0.0",
-		"pg": "^8.16.3"
-	},
-	"scripts": {
-		"dev": "node --watch $( node -p \"try { require('./package.json').main } catch(e) {console.error(e)}\")"
-	}
+  "dependencies": {
+    "@prisma/client": "^6.16.2",
+    "connect-pg-simple": "^10.0.0",
+    "dotenv": "^17.2.2",
+    "ejs": "^3.1.10",
+    "express": "^5.1.0",
+    "express-validator": "^7.2.1",
+    "passport": "^0.7.0",
+    "passport-local": "^1.0.0",
+    "pg": "^8.16.3",
+    "prisma": "^6.16.2"
+  },
+  "scripts": {
+    "dev": "node --watch $( node -p \"try { require('./package.json').main } catch(e) {console.error(e)}\")"
+  },
+  "name": "file-uploader",
+  "version": "0.0.5",
+  "description": "lol hz",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Stan-tab/File-uploader.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Stan-tab/File-uploader/issues"
+  },
+  "homepage": "https://github.com/Stan-tab/File-uploader#readme"
 }
