@@ -6,10 +6,34 @@
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../generated/prisma"
+  // output   = "../generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  url      = env("TABLE")
+}
+
+model User {
+  id       String   @id @unique @default(uuid())
+  username String   @unique @db.VarChar(250)
+  password String
+  folders  Folder[]
+}
+
+model Folder {
+  id         String @id @unique @default(uuid())
+  folderName String @db.VarChar(250)
+  link       String
+  User       User?  @relation(fields: [userId], references: [id])
+  userId     String
+  files      File[]
+}
+
+model File {
+  id       String  @id @unique @default(uuid())
+  fileName String  @db.VarChar(250)
+  link     String
+  Folder   Folder? @relation(fields: [folderId], references: [id])
+  folderId String
 }

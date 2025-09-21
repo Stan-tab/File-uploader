@@ -2,18 +2,20 @@
   "main": "app.js",
   "dependencies": {
     "@prisma/client": "^6.16.2",
+    "bcrypt": "^6.0.0",
     "connect-pg-simple": "^10.0.0",
     "dotenv": "^17.2.2",
     "ejs": "^3.1.10",
     "express": "^5.1.0",
+    "express-session": "^1.18.2",
     "express-validator": "^7.2.1",
     "passport": "^0.7.0",
     "passport-local": "^1.0.0",
-    "pg": "^8.16.3",
-    "prisma": "^6.16.2"
+    "pg": "^8.16.3"
   },
   "scripts": {
-    "dev": "node --watch $( node -p \"try { require('./package.json').main } catch(e) {console.error(e)}\")"
+    "dev": "node --watch $( node -p \"try { require('./package.json').main } catch(e) {console.error(e)}\")",
+    "generate": "npx prisma migrate dev --name init &&  npx prisma generate"
   },
   "name": "file-uploader",
   "version": "0.0.5",
@@ -27,5 +29,8 @@
   "bugs": {
     "url": "https://github.com/Stan-tab/File-uploader/issues"
   },
-  "homepage": "https://github.com/Stan-tab/File-uploader#readme"
+  "homepage": "https://github.com/Stan-tab/File-uploader#readme",
+  "devDependencies": {
+    "prisma": "^6.16.2"
+  }
 }
