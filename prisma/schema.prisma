@@ -24,7 +24,7 @@ model User {
 model Folder {
   id         String @id @unique @default(uuid())
   folderName String @db.VarChar(250)
-  link       String
+  path       String
   User       User?  @relation(fields: [userId], references: [id])
   userId     String
   files      File[]
