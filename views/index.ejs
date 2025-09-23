@@ -3,10 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="index.css">
+    <link rel="stylesheet" href="/index.css">
     <title>Index Page</title>
 </head>
 <body>
-    <h1>Index page of your project</h1>
+    <header>Hello <%= locals.username %>
+    </header>
+    <main>
+        <nav>
+            <img src="/download.svg" alt="Download file">
+            <img src="/trash.svg" alt="Delete file">
+            <form action="/upload" method="post" enctype="multipart/form-data" class="fileUploader">
+                <label for="upload">
+                    <img src="/upload.svg" alt="Upload file">
+                </label>
+                <input type="file" id="upload" hidden onchange="this.parentNode.submit()">
+            </form>
+        </nav>
+        <ul>
+            <% if (locals.data) { %>
+             <% locals.data.forEach(e => { %>
+              <li>
+                <% if(e.metadata) {%>
+                    <label>
+                        <img src="/file.svg" alt="File">
+                        <%= e.name %>
+                        <input type="checkbox" name="dataUnit" id="<%= e.name %>">
+                    </label>
+                <% } else { %>
+                    <img src="/folder.svg" alt="Folder">
+                    <%= e.name %>
+                <% } %>
+             </li>
+             <% }) %>
+            <% } %>
+        </ul>
+    </main>
+    <footer></footer>
 </body>
 </html>

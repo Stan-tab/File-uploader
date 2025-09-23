@@ -58,10 +58,8 @@ async function moveFile(userName, prevPath, currentPath) {
 	return data;
 }
 
-async function getFolders(userName, path = "") {
+async function getData(userName, path = "") {
 	const { data, error } = await supabase.storage.from(userName).list(path, {
-		limit: 100,
-		offset: 0,
 		sortBy: { column: "name", order: "asc" },
 	});
 	errorHandler(error);
@@ -75,5 +73,5 @@ module.exports = {
 	createFile,
 	moveFile,
 	getUrl,
-	getFolders,
+	getData,
 };

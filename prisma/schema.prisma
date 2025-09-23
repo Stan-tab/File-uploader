@@ -22,12 +22,15 @@ model User {
 }
 
 model Folder {
-  id         String @id @unique @default(uuid())
-  folderName String @db.VarChar(250)
+  id         String   @id @unique @default(uuid())
+  folderName String   @db.VarChar(250)
   path       String
-  User       User?  @relation(fields: [userId], references: [id])
+  User       User?    @relation(fields: [userId], references: [id])
   userId     String
   files      File[]
+  folders    Folder[] @relation("folders")
+  Folder     Folder?  @relation("folders", fields: [folderId], references: [id])
+  folderId   String?
 }
 
 model File {

@@ -21,13 +21,13 @@ const signInValidate = [
 		.withMessage("Passwords should be similar"),
 ];
 
-function indexGet(req, res) {
-	if (!req.user) return res.redirect("/logIn");
-	res.render("index");
+async function indexGet(req, res) {
+	const data = await getRootData(req.user.username);
+	console.log(data);
+	res.render("index", { data });
 }
 
 function signInGet(req, res) {
-	if (req.user) return res.redirect("/");
 	res.render("signIn");
 }
 
@@ -53,15 +53,42 @@ const signInPost = [
 				console.log(e);
 				throw new Error("LogIN problem:", e);
 			}
-			return res.redirect("/");
+			return res.redirect("/main");
 		});
 	},
 ];
 
 function logInGet(req, res) {
-	if (req.user) return res.redirect("/");
 	const msg = req.session.messages ? req.session.messages.at(-1) : undefined;
 	res.render("logIn", { msg });
+}
+
+async function getRootData(username, path = "") {
+	const root = (await storage.getData(username, path)).map((e) => {
+		delete e.last_accessed_at;
+		return e;
+	});
+	return root;
+}
+
+async function createFolderPost(req, res) {
+	// const { folderName } = req.body;
+	const path = new URL(req.get("Referrer")).pathname.replace("/main", "");
+	console.log(path);
+}
+
+function redirectGet(req, res) {
+	return res.redirect("/main");
+}
+
+function userExistRedirect(req, res, next) {
+	if (req.user) return res.redirect("/main");
+	next();
+}
+
+function userNotExistRedir(req, res, next) {
+	if (!req.user) return res.redirect("/logIn");
+	next();
 }
 
 module.exports = {
@@ -70,4 +97,8 @@ module.exports = {
 	logInGet,
 	signInPost,
 	prisma,
+	redirectGet,
+	userExistRedirect,
+	userNotExistRedir,
+	createFolderPost,
 };

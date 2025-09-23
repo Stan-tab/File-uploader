@@ -17,22 +17,42 @@ indexRouter.use(
 		rolling: true,
 		saveUninitialized: false,
 		cookie: {
-			maxAge: 2 * 60 * 1000,
+			maxAge: 60 * 60 * 1000,
 		},
 	})
 );
 indexRouter.use(localPassport.session());
-indexRouter.get("/", mainController.indexGet);
-indexRouter.get("/signIn", mainController.signInGet);
-indexRouter.get("/logIn", mainController.logInGet);
-indexRouter.post("/signIn", mainController.signInPost);
-indexRouter.post(
-	"/logIn",
+indexRouter.get("/", mainController.redirectGet);
+indexRouter.get("/main{/*splat}", [
+	mainController.userNotExistRedir,
+	mainController.indexGet,
+]);
+indexRouter.post("/createFolder", [
+	mainController.userNotExistRedir,
+	mainController.createFolderPost,
+]);
+
+indexRouter.get("/signIn", [
+	mainController.userExistRedirect,
+	mainController.signInGet,
+]);
+indexRouter.get("/logIn", [
+	mainController.userExistRedirect,
+	mainController.logInGet,
+]);
+indexRouter.post("/signIn", [
+	mainController.userExistRedirect,
+	mainController.signInPost,
+]);
+indexRouter.post("/logIn", [
+	mainController.userExistRedirect,
 	passport.authenticate("local", {
 		successRedirect: "/",
 		failureRedirect: "/logIn",
 		failureMessage: true,
-	})
-);
+	}),
+]);
+
+indexRouter.all("{*splat}", (req,res) => {res.send("Hi")})
 
 module.exports = indexRouter;
