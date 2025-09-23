@@ -50,10 +50,20 @@ function errorHandler(error) {
 }
 
 async function moveFile(userName, prevPath, currentPath) {
-	// Patth with file
+	// Path with file
 	const { data, error } = await supabase.storage
 		.from(userName)
 		.move(prevPath, currentPath);
+	errorHandler(error);
+	return data;
+}
+
+async function getFolders(userName, path = "") {
+	const { data, error } = await supabase.storage.from(userName).list(path, {
+		limit: 100,
+		offset: 0,
+		sortBy: { column: "name", order: "asc" },
+	});
 	errorHandler(error);
 	return data;
 }
@@ -65,4 +75,5 @@ module.exports = {
 	createFile,
 	moveFile,
 	getUrl,
+	getFolders,
 };

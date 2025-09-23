@@ -7,6 +7,15 @@
 </head>
 <body>
     <main>
+        <div class="errors">
+            <% if(locals.msgs) { %>
+                <ul>
+                    <% locals.msgs.forEach(msg => { %>
+                        <li><%= msg %></li>
+                    <% }) %>
+                </ul>
+            <% } %>
+        </div>
         <div class="card">
             <h2>Sign in</h2>
             <form action="/signIn" method="post">
