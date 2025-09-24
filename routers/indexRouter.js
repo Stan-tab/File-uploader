@@ -22,6 +22,7 @@ indexRouter.use(
 	})
 );
 indexRouter.use(localPassport.session());
+indexRouter.use(mainController.addRootId);
 indexRouter.get("/", mainController.redirectGet);
 indexRouter.get("/main{/*splat}", [
 	mainController.userNotExistRedir,
@@ -50,9 +51,11 @@ indexRouter.post("/logIn", [
 		successRedirect: "/",
 		failureRedirect: "/logIn",
 		failureMessage: true,
-	}),
+	})
 ]);
 
-indexRouter.all("{*splat}", (req,res) => {res.send("Hi")})
+indexRouter.all("{*splat}", (req, res) => {
+	res.send("Hi");
+});
 
 module.exports = indexRouter;

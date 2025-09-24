@@ -22,8 +22,31 @@ const signInValidate = [
 ];
 
 async function indexGet(req, res) {
-	const data = await getRootData(req.user.username);
-	console.log(data);
+	const { username } = req.user;
+	let path = decodeURI(req.originalUrl);
+	if (!validatePath(path)) {
+		next("Invalid path");
+		return;
+	}
+	if (path.at(-1) === "/") path = path.slice(0, -1);
+	const folderData = await prisma.folder.findMany({
+		where: { path },
+		include: { User: { where: { username } } },
+	});
+	const fileData = await prisma.file.findMany({
+		include: {
+			Folder: {
+				where: { path },
+				include: { User: { where: { username } } },
+			},
+		},
+	});
+	const rowData = folderData.concat(fileData);
+	const data = rowData.map((e) => {
+		const name = e.folderName ? e.folderName : e.fileName;
+		return { ...e, name };
+	});
+	// console.log(fileData);
 	res.render("index", { data });
 }
 
@@ -48,6 +71,13 @@ const signInPost = [
 			data: { username, password: hashedPass },
 		});
 		await storage.createBucket(username);
+		await prisma.folder.create({
+			data: {
+				path: "/",
+				folderName: "root",
+				User: { connect: { id: user.id } },
+			},
+		});
 		req.logIn(user, (e) => {
 			if (e) {
 				console.log(e);
@@ -58,36 +88,65 @@ const signInPost = [
 	},
 ];
 
+async function createFolderPost(req, res, next) {
+	const { folderName } = req.body;
+	const path = decodeURI(new URL(req.get("Referrer")).pathname);
+	const pathArr = path.split("/").filter(Boolean);
+	const curFolderName = pathArr.at(-1);
+	pathArr.pop();
+	const prevPath = "/" + pathArr.join("/");
+	let rootId = req.session.rootId;
+	if (!validatePath(path)) {
+		next("Invalid path");
+		return;
+	}
+	if (prevPath !== "/") {
+		rootId = (
+			await prisma.folder.findFirst({
+				where: { path: prevPath, folderName: curFolderName },
+			})
+		).id;
+		console.log(rootId);
+	}
+	await prisma.folder.create({
+		data: {
+			folderName,
+			path,
+			User: { connect: { id: req.user.id } },
+			Folder: { connect: { id: rootId } },
+		},
+	});
+	res.redirect(`${path}`);
+}
+
+function validatePath(url) {
+	return url.split("/").filter(Boolean)[0] === "main";
+}
+function redirectGet(req, res) {
+	return res.redirect("/main");
+}
+function userExistRedirect(req, res, next) {
+	if (req.user) return res.redirect("/main");
+	next();
+}
+function userNotExistRedir(req, res, next) {
+	if (!req.user) return res.redirect("/logIn");
+	next();
+}
 function logInGet(req, res) {
 	const msg = req.session.messages ? req.session.messages.at(-1) : undefined;
 	res.render("logIn", { msg });
 }
 
-async function getRootData(username, path = "") {
-	const root = (await storage.getData(username, path)).map((e) => {
-		delete e.last_accessed_at;
-		return e;
-	});
-	return root;
-}
-
-async function createFolderPost(req, res) {
-	// const { folderName } = req.body;
-	const path = new URL(req.get("Referrer")).pathname.replace("/main", "");
-	console.log(path);
-}
-
-function redirectGet(req, res) {
-	return res.redirect("/main");
-}
-
-function userExistRedirect(req, res, next) {
-	if (req.user) return res.redirect("/main");
-	next();
-}
-
-function userNotExistRedir(req, res, next) {
-	if (!req.user) return res.redirect("/logIn");
+async function addRootId(req, res, next) {
+	if (!req.session.rootId && req.user) {
+		req.session.rootId = (
+			await prisma.folder.findFirst({
+				where: { path: "/" },
+				include: { User: { where: { id: req.user.id } } },
+			})
+		).id;
+	}
 	next();
 }
 
@@ -101,4 +160,5 @@ module.exports = {
 	userExistRedirect,
 	userNotExistRedir,
 	createFolderPost,
+	addRootId,
 };
