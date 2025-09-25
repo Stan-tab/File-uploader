@@ -23,18 +23,17 @@ const signInValidate = [
 
 async function indexGet(req, res) {
 	const { id } = req.user;
-	let path = decodeURI(req.originalUrl);
+	let {path, prevPath} = getPathInfo(decodeURI(req.originalUrl));
 	if (!validatePath(path)) {
 		next("Invalid path");
 		return;
 	}
-	if (path.at(-1) === "/") path = path.slice(0, -1);
 	const folderData = await prisma.folder.findMany({
 		where: { AND: [{ path }, { userId: id }] },
 	});
 	const fileData = await prisma.file.findMany({
 		where: {
-			Folder: { path, userId: id },
+			Folder: { path:prevPath, userId: id },
 		},
 	});
 	const rowData = folderData.concat(fileData);
@@ -42,7 +41,7 @@ async function indexGet(req, res) {
 		const name = e.folderName ? e.folderName : e.fileName;
 		return { ...e, name };
 	});
-	// console.log(rowData);
+	console.log(data);
 	res.render("index", { data });
 }
 
@@ -96,13 +95,12 @@ async function createFolderPost(req, res, next) {
 	}
 	if (prevPath !== "/") {
 		rootId = (
-			await getParentFolderData(
-				req.user.id,
-				prevPath,
-				curFolderName,
-				next
-			)
+			await getParentFolderData(req.user.id, prevPath, curFolderName)
 		).id;
+		if (!rootId) {
+			next(`There is no folder ${curFolderName}`);
+			return;
+		}
 	}
 	await prisma.folder.create({
 		data: {
@@ -122,6 +120,22 @@ async function createFilePost(req, res, next) {
 	const { noMain, prevPath, curFolderName } = getPathInfo(
 		decodeURI(new URL(req.get("Referrer")).pathname)
 	);
+	if (prevPath !== "/") {
+		parentFolder = (
+			await getParentFolderData(req.user.id, prevPath, curFolderName)
+		).id;
+		if (!parentFolder) {
+			next(`There is no folder ${curFolderName}`);
+			return;
+		}
+	}
+	const simFiles = await prisma.file.findMany({
+		where: { folderId: parentFolder, fileName },
+	});
+	if (simFiles.length !== 0) {
+		next("File with similar name already exist");
+		return;
+	}
 	const filePath =
 		(
 			await storage.createFile(
@@ -133,16 +147,6 @@ async function createFilePost(req, res, next) {
 		"/" +
 		fileName;
 	const { publicUrl } = await storage.getUrl(req.user.username, filePath);
-	if (prevPath !== "/") {
-		parentFolder = (
-			await getParentFolderData(
-				req.user.id,
-				prevPath,
-				curFolderName,
-				next
-			)
-		).id;
-	}
 	await prisma.file.create({
 		data: {
 			fileName,
@@ -165,13 +169,7 @@ function getPathInfo(path) {
 		noMain: newPath.replace("main", ""),
 	};
 }
-async function getParentFolderData(
-	userId,
-	prevPath,
-	curFolderName,
-	next,
-	msg = "Folder is not exists"
-) {
+async function getParentFolderData(userId, prevPath, curFolderName) {
 	try {
 		const parentFolder = await prisma.folder.findFirst({
 			where: {
@@ -180,10 +178,10 @@ async function getParentFolderData(
 				folderName: curFolderName,
 			},
 		});
-		return parentFolder;
+		return parentFolder || { id: false };
 	} catch (e) {
 		console.error(e);
-		next(msg);
+		return { id: false };
 	}
 }
 function validatePath(url) {
