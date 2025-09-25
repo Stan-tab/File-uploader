@@ -22,7 +22,7 @@ const signInValidate = [
 ];
 
 async function indexGet(req, res) {
-	const { username } = req.user;
+	const { id } = req.user;
 	let path = decodeURI(req.originalUrl);
 	if (!validatePath(path)) {
 		next("Invalid path");
@@ -30,15 +30,11 @@ async function indexGet(req, res) {
 	}
 	if (path.at(-1) === "/") path = path.slice(0, -1);
 	const folderData = await prisma.folder.findMany({
-		where: { path },
-		include: { User: { where: { username } } },
+		where: { AND: [{ path }, { userId: id }] },
 	});
 	const fileData = await prisma.file.findMany({
-		include: {
-			Folder: {
-				where: { path },
-				include: { User: { where: { username } } },
-			},
+		where: {
+			Folder: { path, userId: id },
 		},
 	});
 	const rowData = folderData.concat(fileData);
@@ -46,7 +42,7 @@ async function indexGet(req, res) {
 		const name = e.folderName ? e.folderName : e.fileName;
 		return { ...e, name };
 	});
-	// console.log(fileData);
+	console.log(rowData);
 	res.render("index", { data });
 }
 
@@ -142,10 +138,10 @@ async function addRootId(req, res, next) {
 	if (!req.session.rootId && req.user) {
 		req.session.rootId = (
 			await prisma.folder.findFirst({
-				where: { path: "/" },
-				include: { User: { where: { id: req.user.id } } },
+				where: { AND: [{ path: "/" }, { userId: req.user.id }] },
 			})
 		).id;
+		if (!req.session.rootId) next("Undefined rootId");
 	}
 	next();
 }
