@@ -17,7 +17,8 @@
                 <label for="upload">
                     <img src="/upload.svg" alt="Upload file">
                 </label>
-                <input type="file" id="upload" hidden onchange="this.parentNode.submit()">
+                <input type="file" name="file" id="upload" hidden onchange="this.parentNode.submit()">
+                <input type="text" name="fileName" value="goodFile.txt">
             </form>
         </nav>
         <ul>

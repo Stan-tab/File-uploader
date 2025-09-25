@@ -42,7 +42,7 @@ async function indexGet(req, res) {
 		const name = e.folderName ? e.folderName : e.fileName;
 		return { ...e, name };
 	});
-	console.log(rowData);
+	// console.log(rowData);
 	res.render("index", { data });
 }
 
@@ -86,11 +86,9 @@ const signInPost = [
 
 async function createFolderPost(req, res, next) {
 	const { folderName } = req.body;
-	const path = decodeURI(new URL(req.get("Referrer")).pathname);
-	const pathArr = path.split("/").filter(Boolean);
-	const curFolderName = pathArr.at(-1);
-	pathArr.pop();
-	const prevPath = "/" + pathArr.join("/");
+	const { path, curFolderName, prevPath } = getPathInfo(
+		decodeURI(new URL(req.get("Referrer")).pathname)
+	);
 	let rootId = req.session.rootId;
 	if (!validatePath(path)) {
 		next("Invalid path");
@@ -98,11 +96,13 @@ async function createFolderPost(req, res, next) {
 	}
 	if (prevPath !== "/") {
 		rootId = (
-			await prisma.folder.findFirst({
-				where: { path: prevPath, folderName: curFolderName },
-			})
+			await getParentFolderData(
+				req.user.id,
+				prevPath,
+				curFolderName,
+				next
+			)
 		).id;
-		console.log(rootId);
 	}
 	await prisma.folder.create({
 		data: {
@@ -115,6 +115,77 @@ async function createFolderPost(req, res, next) {
 	res.redirect(`${path}`);
 }
 
+async function createFilePost(req, res, next) {
+	// const { file, fileName } = req.body;
+	const fileName = "Hi.txt";
+	let parentFolder = req.session.rootId;
+	const { noMain, prevPath, curFolderName } = getPathInfo(
+		decodeURI(new URL(req.get("Referrer")).pathname)
+	);
+	const filePath =
+		(
+			await storage.createFile(
+				req.user.username,
+				noMain + "/" + fileName,
+				new File([], "Hi.txt")
+			)
+		).path +
+		"/" +
+		fileName;
+	const { publicUrl } = await storage.getUrl(req.user.username, filePath);
+	if (prevPath !== "/") {
+		parentFolder = (
+			await getParentFolderData(
+				req.user.id,
+				prevPath,
+				curFolderName,
+				next
+			)
+		).id;
+	}
+	await prisma.file.create({
+		data: {
+			fileName,
+			link: publicUrl,
+			Folder: { connect: { id: parentFolder } },
+		},
+	});
+}
+
+function getPathInfo(path) {
+	const pathArr = path.split("/").filter(Boolean);
+	const newPath = "/" + pathArr.join("/");
+	const curFolderName = pathArr.at(-1);
+	pathArr.pop();
+	const prevPath = "/" + pathArr.join("/");
+	return {
+		path: newPath,
+		curFolderName,
+		prevPath,
+		noMain: newPath.replace("main", ""),
+	};
+}
+async function getParentFolderData(
+	userId,
+	prevPath,
+	curFolderName,
+	next,
+	msg = "Folder is not exists"
+) {
+	try {
+		const parentFolder = await prisma.folder.findFirst({
+			where: {
+				userId: userId,
+				path: prevPath,
+				folderName: curFolderName,
+			},
+		});
+		return parentFolder;
+	} catch (e) {
+		console.error(e);
+		next(msg);
+	}
+}
 function validatePath(url) {
 	return url.split("/").filter(Boolean)[0] === "main";
 }
@@ -157,4 +228,5 @@ module.exports = {
 	userNotExistRedir,
 	createFolderPost,
 	addRootId,
+	createFilePost,
 };

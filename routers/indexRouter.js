@@ -32,6 +32,10 @@ indexRouter.post("/createFolder", [
 	mainController.userNotExistRedir,
 	mainController.createFolderPost,
 ]);
+indexRouter.post("/upload", [
+	mainController.userNotExistRedir,
+	mainController.createFilePost
+])
 
 indexRouter.get("/signIn", [
 	mainController.userExistRedirect,
