@@ -4,6 +4,7 @@ const mainController = require("../controllers/mainController.js");
 const localPassport = require("../authentication/passport.js");
 const session = require("express-session");
 const passport = require("../authentication/passport.js");
+const sub = require("../controllers/subFunc.js");
 const psql = new (require("connect-pg-simple")(session))({
 	conString: process.env.TABLE,
 });
@@ -12,7 +13,7 @@ indexRouter.use(
 	session({
 		store: psql,
 		name: "userData",
-		secret: "Yummy cockie",
+		secret: process.env.SECRET || "Yummy cockie",
 		resave: true,
 		rolling: true,
 		saveUninitialized: false,
@@ -23,39 +24,39 @@ indexRouter.use(
 );
 indexRouter.use(localPassport.session());
 indexRouter.use(mainController.addRootId);
-indexRouter.get("/", mainController.redirectGet);
+indexRouter.get("/", sub.redirectGet);
 indexRouter.get("/main{/*splat}", [
-	mainController.userNotExistRedir,
+	sub.userNotExistRedir,
 	mainController.indexGet,
 ]);
 indexRouter.post("/createFolder", [
-	mainController.userNotExistRedir,
+	sub.userNotExistRedir,
 	mainController.createFolderPost,
 ]);
 indexRouter.post("/upload", [
-	mainController.userNotExistRedir,
-	mainController.createFilePost
-])
+	sub.userNotExistRedir,
+	mainController.createFilePost,
+]);
 
 indexRouter.get("/signIn", [
-	mainController.userExistRedirect,
+	sub.userExistRedirect,
 	mainController.signInGet,
 ]);
 indexRouter.get("/logIn", [
-	mainController.userExistRedirect,
-	mainController.logInGet,
+	sub.userExistRedirect,
+	sub.logInGet,
 ]);
 indexRouter.post("/signIn", [
-	mainController.userExistRedirect,
+	sub.userExistRedirect,
 	mainController.signInPost,
 ]);
 indexRouter.post("/logIn", [
-	mainController.userExistRedirect,
+	sub.userExistRedirect,
 	passport.authenticate("local", {
 		successRedirect: "/",
 		failureRedirect: "/logIn",
 		failureMessage: true,
-	})
+	}),
 ]);
 
 indexRouter.all("{*splat}", (req, res) => {

@@ -3,6 +3,7 @@ const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 const storage = require("../supabase/index");
 const { body, validationResult } = require("express-validator");
+const sub = require("./subFunc");
 const signInValidate = [
 	body("username")
 		.trim()
@@ -21,10 +22,11 @@ const signInValidate = [
 		.withMessage("Passwords should be similar"),
 ];
 
-async function indexGet(req, res) {
+async function indexGet(req, res, next) {
 	const { id } = req.user;
-	let {path, prevPath} = getPathInfo(decodeURI(req.originalUrl));
-	if (!validatePath(path)) {
+	let { path, prevPath } = sub.getPathInfo(decodeURI(req.originalUrl));
+	const pathValidated = await validatePath(req.user.id, path);
+	if (!pathValidated) {
 		next("Invalid path");
 		return;
 	}
@@ -33,7 +35,7 @@ async function indexGet(req, res) {
 	});
 	const fileData = await prisma.file.findMany({
 		where: {
-			Folder: { path:prevPath, userId: id },
+			Folder: { path: prevPath, userId: id },
 		},
 	});
 	const rowData = folderData.concat(fileData);
@@ -41,7 +43,7 @@ async function indexGet(req, res) {
 		const name = e.folderName ? e.folderName : e.fileName;
 		return { ...e, name };
 	});
-	console.log(data);
+	// console.log(data);
 	res.render("index", { data });
 }
 
@@ -85,23 +87,16 @@ const signInPost = [
 
 async function createFolderPost(req, res, next) {
 	const { folderName } = req.body;
-	const { path, curFolderName, prevPath } = getPathInfo(
+	const { path, curFolderName, prevPath } = sub.getPathInfo(
 		decodeURI(new URL(req.get("Referrer")).pathname)
 	);
 	let rootId = req.session.rootId;
-	if (!validatePath(path)) {
+	const pathValidated = await validatePath(req.user.id, path);
+	if (!pathValidated) {
 		next("Invalid path");
 		return;
 	}
-	if (prevPath !== "/") {
-		rootId = (
-			await getParentFolderData(req.user.id, prevPath, curFolderName)
-		).id;
-		if (!rootId) {
-			next(`There is no folder ${curFolderName}`);
-			return;
-		}
-	}
+	rootId = pathValidated.id
 	await prisma.folder.create({
 		data: {
 			folderName,
@@ -117,18 +112,15 @@ async function createFilePost(req, res, next) {
 	// const { file, fileName } = req.body;
 	const fileName = "Hi.txt";
 	let parentFolder = req.session.rootId;
-	const { noMain, prevPath, curFolderName } = getPathInfo(
+	const { noMain, prevPath, curFolderName, path } = sub.getPathInfo(
 		decodeURI(new URL(req.get("Referrer")).pathname)
 	);
-	if (prevPath !== "/") {
-		parentFolder = (
-			await getParentFolderData(req.user.id, prevPath, curFolderName)
-		).id;
-		if (!parentFolder) {
-			next(`There is no folder ${curFolderName}`);
-			return;
-		}
+	const pathValidated = await validatePath(req.user.id, path);
+	if (!pathValidated) {
+		next("Invalid path");
+		return;
 	}
+	parentFolder = pathValidated.id
 	const simFiles = await prisma.file.findMany({
 		where: { folderId: parentFolder, fileName },
 	});
@@ -156,19 +148,6 @@ async function createFilePost(req, res, next) {
 	});
 }
 
-function getPathInfo(path) {
-	const pathArr = path.split("/").filter(Boolean);
-	const newPath = "/" + pathArr.join("/");
-	const curFolderName = pathArr.at(-1);
-	pathArr.pop();
-	const prevPath = "/" + pathArr.join("/");
-	return {
-		path: newPath,
-		curFolderName,
-		prevPath,
-		noMain: newPath.replace("main", ""),
-	};
-}
 async function getParentFolderData(userId, prevPath, curFolderName) {
 	try {
 		const parentFolder = await prisma.folder.findFirst({
@@ -184,23 +163,15 @@ async function getParentFolderData(userId, prevPath, curFolderName) {
 		return { id: false };
 	}
 }
-function validatePath(url) {
-	return url.split("/").filter(Boolean)[0] === "main";
-}
-function redirectGet(req, res) {
-	return res.redirect("/main");
-}
-function userExistRedirect(req, res, next) {
-	if (req.user) return res.redirect("/main");
-	next();
-}
-function userNotExistRedir(req, res, next) {
-	if (!req.user) return res.redirect("/logIn");
-	next();
-}
-function logInGet(req, res) {
-	const msg = req.session.messages ? req.session.messages.at(-1) : undefined;
-	res.render("logIn", { msg });
+async function validatePath(id, url) {
+	const { prevPath, curFolderName } = sub.getPathInfo(decodeURI(url));
+	if (url.split("/").filter(Boolean)[0] !== "main") return false;
+	const data = await getParentFolderData(
+		id,
+		prevPath,
+		curFolderName === "main" ? "root" : curFolderName
+	);
+	return data.id ? data : false;
 }
 
 async function addRootId(req, res, next) {
@@ -218,12 +189,8 @@ async function addRootId(req, res, next) {
 module.exports = {
 	indexGet,
 	signInGet,
-	logInGet,
 	signInPost,
 	prisma,
-	redirectGet,
-	userExistRedirect,
-	userNotExistRedir,
 	createFolderPost,
 	addRootId,
 	createFilePost,
