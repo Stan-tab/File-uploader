@@ -4,6 +4,13 @@ const prisma = new PrismaClient();
 const storage = require("../supabase/index");
 const { body, validationResult } = require("express-validator");
 const sub = require("./subFunc");
+const multer = require("multer");
+const memory = multer.memoryStorage();
+const { decode } = require("base64-arraybuffer");
+const uploadFile = multer({
+	storage: memory,
+	limits: { fileSize: 524288 },
+}).single("file");
 const signInValidate = [
 	body("username")
 		.trim()
@@ -96,7 +103,7 @@ async function createFolderPost(req, res, next) {
 		next("Invalid path");
 		return;
 	}
-	rootId = pathValidated.id
+	rootId = pathValidated.id;
 	await prisma.folder.create({
 		data: {
 			folderName,
@@ -109,10 +116,14 @@ async function createFolderPost(req, res, next) {
 }
 
 async function createFilePost(req, res, next) {
-	// const { file, fileName } = req.body;
-	const fileName = "Hi.txt";
+	const file = req.file;
+	const name = req.body.fileName;
+	const nameArr = file.originalname.split(".").filter(Boolean);
+	if (name) nameArr[0] = name;
+	const fileName = nameArr.join(".");
+	const fileBase64 = decode(file.buffer.toString("base64"));
 	let parentFolder = req.session.rootId;
-	const { noMain, prevPath, curFolderName, path } = sub.getPathInfo(
+	const { noMain, path } = sub.getPathInfo(
 		decodeURI(new URL(req.get("Referrer")).pathname)
 	);
 	const pathValidated = await validatePath(req.user.id, path);
@@ -120,7 +131,7 @@ async function createFilePost(req, res, next) {
 		next("Invalid path");
 		return;
 	}
-	parentFolder = pathValidated.id
+	parentFolder = pathValidated.id;
 	const simFiles = await prisma.file.findMany({
 		where: { folderId: parentFolder, fileName },
 	});
@@ -128,16 +139,13 @@ async function createFilePost(req, res, next) {
 		next("File with similar name already exist");
 		return;
 	}
-	const filePath =
-		(
-			await storage.createFile(
-				req.user.username,
-				noMain + "/" + fileName,
-				new File([], "Hi.txt")
-			)
-		).path +
-		"/" +
-		fileName;
+	const filePath = (
+		await storage.createFile(
+			req.user.username,
+			noMain + "/" + fileName,
+			fileBase64
+		)
+	).path;
 	const { publicUrl } = await storage.getUrl(req.user.username, filePath);
 	await prisma.file.create({
 		data: {
@@ -146,6 +154,7 @@ async function createFilePost(req, res, next) {
 			Folder: { connect: { id: parentFolder } },
 		},
 	});
+	res.redirect(`${path}`);
 }
 
 async function getParentFolderData(userId, prevPath, curFolderName) {
@@ -194,4 +203,5 @@ module.exports = {
 	createFolderPost,
 	addRootId,
 	createFilePost,
+	uploadFile,
 };

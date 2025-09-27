@@ -35,21 +35,13 @@ indexRouter.post("/createFolder", [
 ]);
 indexRouter.post("/upload", [
 	sub.userNotExistRedir,
+	mainController.uploadFile,
 	mainController.createFilePost,
 ]);
 
-indexRouter.get("/signIn", [
-	sub.userExistRedirect,
-	mainController.signInGet,
-]);
-indexRouter.get("/logIn", [
-	sub.userExistRedirect,
-	sub.logInGet,
-]);
-indexRouter.post("/signIn", [
-	sub.userExistRedirect,
-	mainController.signInPost,
-]);
+indexRouter.get("/signIn", [sub.userExistRedirect, mainController.signInGet]);
+indexRouter.get("/logIn", [sub.userExistRedirect, sub.logInGet]);
+indexRouter.post("/signIn", [sub.userExistRedirect, mainController.signInPost]);
 indexRouter.post("/logIn", [
 	sub.userExistRedirect,
 	passport.authenticate("local", {
