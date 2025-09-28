@@ -28,6 +28,18 @@ const signInValidate = [
 		})
 		.withMessage("Passwords should be similar"),
 ];
+const folderNameValidate = body("folderName")
+	.trim()
+	.notEmpty()
+	.withMessage("Folder name should not be empty");
+
+const arrayValidateFile = body("dataUnit")
+	.isArray({ min: 1 })
+	.withMessage("Choose files");
+
+const arrayValidateFolder = body("folders")
+	.isArray({ min: 1 })
+	.withMessage("Choose folders");
 
 async function indexGet(req, res, next) {
 	const { id } = req.user;
@@ -92,28 +104,40 @@ const signInPost = [
 	},
 ];
 
-async function createFolderPost(req, res, next) {
-	const { folderName } = req.body;
-	const { path, curFolderName, prevPath } = sub.getPathInfo(
-		decodeURI(new URL(req.get("Referrer")).pathname)
-	);
-	let rootId = req.session.rootId;
-	const pathValidated = await validatePath(req.user.id, path);
-	if (!pathValidated) {
-		next("Invalid path");
-		return;
-	}
-	rootId = pathValidated.id;
-	await prisma.folder.create({
-		data: {
-			folderName,
-			path,
-			User: { connect: { id: req.user.id } },
-			Folder: { connect: { id: rootId } },
-		},
-	});
-	res.redirect(`${path}`);
-}
+const createFolderPost = [
+	folderNameValidate,
+	async (req, res, next) => {
+		const isNameValid = validationResult(req);
+		if (!isNameValid.isEmpty()) {
+			const msgs = JSON.stringify(
+				isNameValid.errors.map((obj) => obj.msg)
+			);
+			console.error(msgs);
+			next(msgs);
+			return;
+		}
+		const { folderName } = req.body;
+		const { path } = sub.getPathInfo(
+			decodeURI(new URL(req.get("Referrer")).pathname)
+		);
+		let rootId = req.session.rootId;
+		const pathValidated = await validatePath(req.user.id, path);
+		if (!pathValidated) {
+			next("Invalid path");
+			return;
+		}
+		rootId = pathValidated.id;
+		await prisma.folder.create({
+			data: {
+				folderName,
+				path,
+				User: { connect: { id: req.user.id } },
+				Folder: { connect: { id: rootId } },
+			},
+		});
+		res.redirect(`${path}`);
+	},
+];
 
 async function createFilePost(req, res, next) {
 	const file = req.file;
@@ -155,6 +179,80 @@ async function createFilePost(req, res, next) {
 		},
 	});
 	res.redirect(`${path}`);
+}
+
+const deleteFilePost = [
+	arrayValidateFile,
+	async (req, res) => {
+		const isValid = validationResult(req);
+		if (!isValid.isEmpty()) return res.status(404).redirect("/main");
+		const { path } = sub.getPathInfo(
+			decodeURI(new URL(req.get("Referrer")).pathname)
+		);
+		const { dataUnit } = req.body;
+		await deleteFilesById(req.user.username, dataUnit);
+		res.redirect(path);
+	},
+];
+
+const deleteFolderPost = [
+	arrayValidateFolder,
+	async (req, res) => {
+		const isValid = validationResult(req);
+		if (!isValid.isEmpty()) return res.status(404).redirect("/main");
+		const { path } = sub.getPathInfo(
+			decodeURI(new URL(req.get("Referrer")).pathname)
+		);
+		const { folders } = req.body;
+		const folderQuery = [...folders];
+		const fileQuery = [];
+		for (const i of folders) {
+			const folderData = await prisma.folder.findUnique({
+				where: { id: i },
+				select: {
+					folderName: true,
+					path: true,
+					id: true,
+					folders: { select: { id: true } },
+					files: { select: { id: true } },
+				},
+			});
+			if (folderData.folders.length > 0) {
+				folderData.folders.forEach((folder) => {
+					folderQuery.push(folder.id);
+				});
+			}
+			if (folderData.files.length > 0) {
+				folderData.files.forEach((file) => {
+					fileQuery.push(file.id);
+				});
+			}
+		}
+		if (fileQuery.length > 0)
+			await deleteFilesById(req.user.username, fileQuery);
+		const reverseFodlers = folderQuery.reverse();
+		await deleteFoldersById(reverseFodlers);
+		res.redirect(path);
+	},
+];
+
+async function deleteFilesById(username, fileIdArray) {
+	const dataPath = [];
+	for (const i of fileIdArray) {
+		const data = await prisma.file.delete({
+			where: { id: i },
+			select: { fileName: true, Folder: { select: { path: true } } },
+		});
+		const path = `${data.Folder.path.replace("/", "")}${data.fileName}`;
+		dataPath.push(path);
+	}
+	await storage.deleteFiles(username, dataPath);
+}
+
+async function deleteFoldersById(foldersArray) {
+	for (const i of foldersArray) {
+		await prisma.folder.delete({ where: { id: i } });
+	}
 }
 
 async function getParentFolderData(userId, prevPath, curFolderName) {
@@ -204,4 +302,6 @@ module.exports = {
 	addRootId,
 	createFilePost,
 	uploadFile,
+	deleteFilePost,
+	deleteFolderPost,
 };

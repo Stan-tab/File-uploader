@@ -38,6 +38,14 @@ indexRouter.post("/upload", [
 	mainController.uploadFile,
 	mainController.createFilePost,
 ]);
+indexRouter.post("/delete", [
+	sub.userNotExistRedir,
+	mainController.deleteFilePost,
+]);
+indexRouter.post("/deleteFolder", [
+	sub.userNotExistRedir,
+	mainController.deleteFolderPost,
+]);
 
 indexRouter.get("/signIn", [sub.userExistRedirect, mainController.signInGet]);
 indexRouter.get("/logIn", [sub.userExistRedirect, sub.logInGet]);
