@@ -22,4 +22,21 @@ deleteButton.addEventListener("click", (e) => {
 	if (FoldersId) {
 		deleteFolderForm.submit();
 	}
+	if(FilesId || FoldersId) {
+		window.location = window.location.href
+	}
 });
+
+class Download {
+	downloadFile(url, fileName) {
+		const link = document.createElement("a");
+		link.href = url;
+		link.download = fileName;
+		document.body.appendChild(link);
+		link.click();
+		document.body.removeChild(link);
+	}
+	downloadFiles(form) {
+
+	}
+}

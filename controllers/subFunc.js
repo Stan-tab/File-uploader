@@ -27,10 +27,50 @@ function getPathInfo(path) {
 	};
 }
 
+function checkTheLastFile(prevFile, curFile) {
+	if (prevFile.length != curFile.length) return false;
+	for (let i = 0; i < prevFile.length; i++) {
+		const [data1, data2] = [
+			removeNums(prevFile[i]),
+			removeNums(curFile[i]),
+		];
+		if (data1 != data2) return "new";
+	}
+	return +parseNum(prevFile.at(-2)) || 0;
+}
+
+function removeNums(str) {
+	const newString = [];
+	for (let i = 0; i < str.length; i++) {
+		if (
+			Number.isNaN(Number(str.at(i))) &&
+			str.at(i) != "(" &&
+			str.at(i) != ")"
+		) {
+			newString.push(str.at(i));
+			continue;
+		}
+	}
+	return newString.join("");
+}
+
+function parseNum(str) {
+	if (str.at(-1) != ")") return false;
+	const nums = [];
+	for (let i = 2; i <= str.length; i++) {
+		const char = str.at(i * -1);
+		if (char === "(") break;
+		if (!Number.isInteger(Number(char))) return false;
+		nums.push(char);
+	}
+	return nums.reverse().join("");
+}
+
 module.exports = {
 	redirectGet,
 	userExistRedirect,
 	userNotExistRedir,
 	logInGet,
 	getPathInfo,
+	checkTheLastFile,
 };

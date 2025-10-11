@@ -140,11 +140,16 @@ const createFolderPost = [
 ];
 
 async function createFilePost(req, res, next) {
-	const file = req.file;
-	const name = req.body.fileName;
-	const nameArr = file.originalname.split(".").filter(Boolean);
+	try {
+		var file = req.file;
+		var name = req.body.fileName;
+		var nameArr = file.originalname.split(".").filter(Boolean);
+	} catch (error) {
+		res.json("message: 'Please enter the file'")
+		return
+	}
 	if (name) nameArr[0] = name;
-	const fileName = nameArr.join(".");
+	let fileName = nameArr.join(".");
 	const fileBase64 = decode(file.buffer.toString("base64"));
 	let parentFolder = req.session.rootId;
 	const { noMain, path } = sub.getPathInfo(
@@ -156,12 +161,36 @@ async function createFilePost(req, res, next) {
 		return;
 	}
 	parentFolder = pathValidated.id;
-	const simFiles = await prisma.file.findMany({
-		where: { folderId: parentFolder, fileName },
+	let simFiles = await prisma.file.findMany({
+		where: {
+			folderId: parentFolder,
+			AND: [
+				{ fileName: { contains: nameArr[0] } },
+				{ fileName: { contains: nameArr[1] } },
+			],
+		},
+		orderBy: {
+			fileName: "asc",
+		},
 	});
+	simFiles = simFiles.filter(
+		(el) => el.fileName.split(".").at(-1) === nameArr.at(-1)
+	);
 	if (simFiles.length !== 0) {
-		next("File with similar name already exist");
-		return;
+		let val = simFiles.length >= 2 ? -2 : -1;
+		let lastSim = simFiles.at(val).fileName.split(".");
+		const copyNameArr = nameArr.join(".").split(".");
+		let prevNum = sub.checkTheLastFile(lastSim, copyNameArr);
+		console.log(prevNum);
+		while (!Number.isInteger(prevNum) && prevNum !== "new") {
+			lastSim = simFiles.at(val).fileName.split(".");
+			prevNum = sub.checkTheLastFile(lastSim, copyNameArr);
+			val--;
+		}
+		if (prevNum !== "new") {
+			nameArr[nameArr.length - 2] = nameArr.at(-2) + `(${prevNum + 1})`;
+			fileName = nameArr.join(".");
+		}
 	}
 	const filePath = (
 		await storage.createFile(
@@ -195,6 +224,7 @@ const deleteFilePost = [
 	},
 ];
 
+//Todo fix error here
 const deleteFolderPost = [
 	arrayValidateFolder,
 	async (req, res) => {
@@ -241,9 +271,19 @@ async function deleteFilesById(username, fileIdArray) {
 	for (const i of fileIdArray) {
 		const data = await prisma.file.delete({
 			where: { id: i },
-			select: { fileName: true, Folder: { select: { path: true } } },
+			select: {
+				fileName: true,
+				Folder: { select: { path: true, folderName: true } },
+			},
 		});
-		const path = `${data.Folder.path.replace("/", "")}${data.fileName}`;
+		const rawFolderName =
+			data.Folder.folderName === "root" ? "" : data.Folder.folderName;
+		const folderName = rawFolderName ? rawFolderName + "/" : "";
+		const rawFolderPath = data.Folder.path
+			.replace("/main", "")
+			.replace("/", "");
+		const folderPath = rawFolderPath ? rawFolderPath + "/" : "";
+		const path = `${folderPath}${folderName}${data.fileName}`;
 		dataPath.push(path);
 	}
 	await storage.deleteFiles(username, dataPath);
