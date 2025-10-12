@@ -145,8 +145,8 @@ async function createFilePost(req, res, next) {
 		var name = req.body.fileName;
 		var nameArr = file.originalname.split(".").filter(Boolean);
 	} catch (error) {
-		res.json("message: 'Please enter the file'")
-		return
+		res.json("message: 'Please enter the file'");
+		return;
 	}
 	if (name) nameArr[0] = name;
 	let fileName = nameArr.join(".");
@@ -181,7 +181,6 @@ async function createFilePost(req, res, next) {
 		let lastSim = simFiles.at(val).fileName.split(".");
 		const copyNameArr = nameArr.join(".").split(".");
 		let prevNum = sub.checkTheLastFile(lastSim, copyNameArr);
-		console.log(prevNum);
 		while (!Number.isInteger(prevNum) && prevNum !== "new") {
 			lastSim = simFiles.at(val).fileName.split(".");
 			prevNum = sub.checkTheLastFile(lastSim, copyNameArr);
@@ -224,7 +223,6 @@ const deleteFilePost = [
 	},
 ];
 
-//Todo fix error here
 const deleteFolderPost = [
 	arrayValidateFolder,
 	async (req, res) => {
@@ -276,14 +274,7 @@ async function deleteFilesById(username, fileIdArray) {
 				Folder: { select: { path: true, folderName: true } },
 			},
 		});
-		const rawFolderName =
-			data.Folder.folderName === "root" ? "" : data.Folder.folderName;
-		const folderName = rawFolderName ? rawFolderName + "/" : "";
-		const rawFolderPath = data.Folder.path
-			.replace("/main", "")
-			.replace("/", "");
-		const folderPath = rawFolderPath ? rawFolderPath + "/" : "";
-		const path = `${folderPath}${folderName}${data.fileName}`;
+		const path = sub.createPathForSupabase(data);
 		dataPath.push(path);
 	}
 	await storage.deleteFiles(username, dataPath);

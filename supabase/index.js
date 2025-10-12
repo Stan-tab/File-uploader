@@ -66,6 +66,14 @@ async function getData(userName, path = "") {
 	return data;
 }
 
+async function downloadFile(userName, path) {
+	const { data, error } = await supabase.storage
+		.from(userName)
+		.download(path);
+	errorHandler(error);
+	return data;
+}
+
 module.exports = {
 	createBucket,
 	createFolder,
@@ -74,4 +82,5 @@ module.exports = {
 	moveFile,
 	getUrl,
 	getData,
+	downloadFile,
 };

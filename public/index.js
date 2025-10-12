@@ -18,16 +18,18 @@ deleteButton.addEventListener("click", (e) => {
 			body: FilesId,
 			headers: { "content-type": "application/x-www-form-urlencoded" },
 		});
+		window.location = window.location.href;
 	}
 	if (FoldersId) {
 		deleteFolderForm.submit();
 	}
-	if(FilesId || FoldersId) {
-		window.location = window.location.href
-	}
 });
 
 class Download {
+	constructor(formId) {
+		this.form = document.querySelector(formId);
+		this.form.addEventListener("submit", (e) => e.preventDefault());
+	}
 	downloadFile(url, fileName) {
 		const link = document.createElement("a");
 		link.href = url;
@@ -36,7 +38,22 @@ class Download {
 		link.click();
 		document.body.removeChild(link);
 	}
-	downloadFiles(form) {
-
+	async downloadFiles(id) {
+		const filesData = [...document.querySelectorAll(id)];
+		for (const input of filesData) {
+			if (input.checked) {
+				const url = new URL(input.getAttribute("link"));
+				const blobUrl = URL.createObjectURL(
+					await (await fetch(url.href)).blob()
+				);
+				const data = {
+					name: url.pathname.split("/").at(-1),
+					url: blobUrl,
+				};
+				this.downloadFile(data.url, data.name);
+			}
+		}
 	}
 }
+
+const downloader = new Download("#downloadForm");

@@ -12,7 +12,12 @@
     </header>
     <main>
         <nav>
-            <img src="/download.svg" alt="Download file">
+            <form id="downloadForm" action="/download" method="post" 
+                onsubmit="downloader.downloadFiles('#file')">
+                <button type="submit">
+                    <img src="/download.svg" alt="Download file">
+                </button>
+            </form>
             <form id="deleteForm" action="/delete" method="post">
                 <button class="deletor">
                     <img src="/trash.svg" alt="Delete file">
@@ -36,8 +41,8 @@
                 <% if(e.fileName) {%>
                     <label>
                         <img src="/file.svg" alt="File">
-                        <%= e.name %>
-                        <input link="<%= e.link %>" type="checkbox" name="dataUnit[]" id="file" form="deleteForm" value="<%= e.id %>">
+                        <a href="<%= e.link %>"><%= e.name %></a>
+                        <input type="checkbox" link="<%= e.link %>" name="dataUnit[]" id="file" form="deleteForm" value="<%= e.id %>">
                     </label>
                 <% } else { %>
                     <a href="<%= e.path %>/<%= e.name %>">

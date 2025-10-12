@@ -66,6 +66,17 @@ function parseNum(str) {
 	return nums.reverse().join("");
 }
 
+function createPathForSupabase(data) {
+	const rawFolderName =
+		data.Folder.folderName === "root" ? "" : data.Folder.folderName;
+	const folderName = rawFolderName ? rawFolderName + "/" : "";
+	const rawFolderPath = data.Folder.path
+		.replace("/main", "")
+		.replace("/", "");
+	const folderPath = rawFolderPath ? rawFolderPath + "/" : "";
+	return `${folderPath}${folderName}${data.fileName}`;
+}
+
 module.exports = {
 	redirectGet,
 	userExistRedirect,
@@ -73,4 +84,5 @@ module.exports = {
 	logInGet,
 	getPathInfo,
 	checkTheLastFile,
+	createPathForSupabase,
 };
