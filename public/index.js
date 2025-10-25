@@ -56,4 +56,64 @@ class Download {
 	}
 }
 
+(function setTheButtonBack() {
+	const buttonBack = document.querySelector("header > button");
+	const link = new URL(window.location.href);
+	if (link.pathname === "/main") {
+		buttonBack.style.visibility = "hidden";
+		return;
+	}
+	buttonBack.addEventListener("click", () => {
+		const arr = link.pathname.split("/").filter(Boolean);
+		arr.pop();
+		window.location.href = `${link.origin}/${arr.join("/")}`;
+	});
+})();
+
+(function createButtonEvent() {
+	const createBut = document.querySelector(".createBut");
+	const createDiv = document.querySelector(".create");
+	createBut.addEventListener("click", () => {
+		createDiv.classList.toggle("show");
+	});
+})();
+
+(function setChoosers() {
+	const choosers = [...document.querySelectorAll(".chooser")];
+	const creaters = [...document.querySelectorAll(".creaters")];
+	choosers[0].addEventListener("click", () => {
+		creaters[0].classList.add("show");
+		creaters[1].classList.remove("show");
+	});
+	choosers[1].addEventListener("click", () => {
+		creaters[1].classList.add("show");
+		creaters[0].classList.remove("show");
+	});
+})();
+
+(function showDownloadAndDeleteButtons() {
+	const data = [...document.querySelectorAll("main input[type='checkbox']")];
+	data.forEach((inp) => {
+		inp.addEventListener("click", () => {
+			const checkedOnes = [];
+			data.forEach((inpt) => {
+				if (inpt.checked) checkedOnes.push(inpt.id);
+			});
+			const forms = [
+				...document.querySelectorAll("#downloadForm, #deleteForm"),
+			];
+			if (checkedOnes.length === 0) {
+				forms[0].classList.remove("show");
+				forms[1].classList.remove("show");
+			} else if (!checkedOnes.includes("folder")) {
+				forms[0].classList.add("show");
+				forms[1].classList.add("show");
+			} else {
+				forms[1].classList.add("show");
+				forms[0].classList.remove("show");
+			}
+		});
+	});
+})();
+
 const downloader = new Download("#downloadForm");

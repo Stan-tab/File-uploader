@@ -37,7 +37,7 @@
             <button class="chooser" type="button">Create folder</button>
             <button class="chooser" type="button">Send file</button>
         </nav>
-        <div class="creaters">
+        <div class="creaters show">
             <form action="/createFolder" method="post">
                 <h3>Create folder</h3>
                 <input type="text" name="folderName" required placeholder="Enter folder name">
@@ -57,7 +57,7 @@
     </div>
     <main>
         <ul>
-            <% if (locals.data) { %>
+            <% if (locals.data.length > 0) { %>
              <% locals.data.forEach(e => { %>
               <li>
                 <% if(e.fileName) {%>
@@ -77,6 +77,8 @@
                 <% } %>
              </li>
              <% }) %>
+            <% } else {%>
+                <h2>There is no data here. You can add something!</h2>
             <% } %>
         </ul>
     </main>
