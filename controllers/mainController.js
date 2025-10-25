@@ -63,7 +63,7 @@ async function indexGet(req, res, next) {
 		return { ...e, name };
 	});
 	// console.log(data);
-	res.render("index", { data });
+	res.render("index", { data, username: req.user.username });
 }
 
 function signInGet(req, res) {
@@ -234,7 +234,7 @@ const deleteFolderPost = [
 		const { folders } = req.body;
 		const folderQuery = [...folders];
 		const fileQuery = [];
-		for (const i of folders) {
+		for (const i of folderQuery) {
 			const folderData = await prisma.folder.findUnique({
 				where: { id: i },
 				select: {

@@ -14,7 +14,7 @@ indexRouter.use(
 		store: psql,
 		name: "userData",
 		secret: process.env.SECRET || "Yummy cockie",
-		resave: true,
+		resave: false,
 		rolling: true,
 		saveUninitialized: false,
 		cookie: {
