@@ -8,45 +8,67 @@
     <title>Index Page</title>
 </head>
 <body>
-    <header>Hello <%= locals.username %>
-    </header>
-    <main>
+    <button aria-label="Create folder or file" 
+            type="button"
+            class="createBut"
+    >+</button>
+    <header>
+        <button type="button">
+            &lt;
+        </button>
         <nav>
             <form id="downloadForm" action="/download" method="post" 
                 onsubmit="downloader.downloadFiles('#file')">
                 <button type="submit">
-                    <img src="/download.svg" alt="Download file">
+                    <img src="/icon/download.svg" alt="Download file">
                 </button>
             </form>
             <form id="deleteForm" action="/delete" method="post">
-                <button class="deletor">
-                    <img src="/trash.svg" alt="Delete file">
+                <button type="submit" class="deletor">
+                    <img src="/icon/trash.svg" alt="Delete file">
                 </button>
             </form>
-            <form style="visibility: hidden;" id="deleteFolderForm" action="/deleteFolder" method="post">
-
-            </form>
-            <form action="/upload" method="post" enctype="multipart/form-data" class="fileUploader">
-                <label for="upload">
-                    <img src="/upload.svg" alt="Upload file">
-                </label>
-                <input type="file" name="file" id="upload" hidden onchange="this.parentNode.submit()">
-                <input type="text" name="fileName">
+            <form style="display: none;" id="deleteFolderForm" action="/deleteFolder" method="post">
             </form>
         </nav>
+    </header>
+    <div class="create">
+        <nav>
+            <button class="chooser" type="button">Create folder</button>
+            <button class="chooser" type="button">Send file</button>
+        </nav>
+        <div class="creaters">
+            <form action="/createFolder" method="post">
+                <h3>Create folder</h3>
+                <input type="text" name="folderName" required placeholder="Enter folder name">
+                <button type="submit">Enter</button>
+            </form>
+        </div>
+        <div class="creaters">
+            <form action="/upload" method="post" enctype="multipart/form-data" class="fileUploader">
+                <h3>Send file</h3>
+                <input type="text" name="fileName" placeholder="Enter file name">
+                <label for="upload">
+                    <img src="/icon/upload.svg" alt="Upload file" class="imgUpload">
+                </label>
+                <input type="file" name="file" id="upload" hidden onchange="this.parentNode.submit()">
+            </form>
+        </div>
+    </div>
+    <main>
         <ul>
             <% if (locals.data) { %>
              <% locals.data.forEach(e => { %>
               <li>
                 <% if(e.fileName) {%>
                     <label>
-                        <img src="/file.svg" alt="File">
+                        <img src="/icon/file.svg" alt="File">
                         <a href="<%= e.link %>"><%= e.name %></a>
                         <input type="checkbox" link="<%= e.link %>" name="dataUnit[]" id="file" form="deleteForm" value="<%= e.id %>">
                     </label>
                 <% } else { %>
                     <a href="<%= e.path %>/<%= e.name %>">
-                        <img src="/folder.svg" alt="Folder">
+                        <img src="/icon/folder.svg" alt="Folder">
                         <%= e.name %>
                     </a>
                     <label>
@@ -59,11 +81,10 @@
         </ul>
     </main>
     <footer>
-        <!-- For testing -->
-        <form action="/createFolder" method="post">
-            <input type="text" name="folderName">
-            <button type="submit">enter</button>
-        </form>
+        <a href="https://github.com/Stan-tab/File-uploader" id="source">
+            <img src="/icon/github-svgrepo-com.svg" alt="">
+            Check the source code
+        </a>
     </footer>
 </body>
 </html>
